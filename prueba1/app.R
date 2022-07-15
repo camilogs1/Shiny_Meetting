@@ -3,18 +3,20 @@ library(stringr)
 library(openxlsx)
 library(writexl)
 library(tidyverse)
+library(ggplot2)
 
 ui <- fluidPage(
-    titlePanel("Subida documentos"),
+    titlePanel("ShinyApps"),
     sidebarLayout(
         sidebarPanel(
-            fileInput("file1", "Csv o Excel",
+            fileInput("file", "Csv o Excel",
                       multiple = TRUE,
                       accept = c(".csv", ".xlsx")),
             downloadButton("downloadData", "Download")
         ),
         mainPanel(
-            tableOutput("contents")
+            tableOutput("contents"),
+            plotOutput("fig")
         )
     )
 )
@@ -22,32 +24,40 @@ ui <- fluidPage(
 server <- function(input, output) {
     
     exportar <- reactive({
-        
-    })
     
-    output$contents <- renderTable({
+        req(input$file)
         
-        req(input$file1)
-        
-        ext <- input$file1$datapath
+        ext <- input$file$datapath
         ext <- str_remove(ext, ".*/0.")
         
         if(ext == "xlsx")
         {
-            df <- read.xlsx(input$file1$datapath)
+            df <- read.xlsx(input$file$datapath)
         }else{
-            df <- read.csv(input$file1$datapath, header = TRUE, sep = ";")
+            df <- read.csv(input$file$datapath, header = TRUE, sep = ";")
         }
-        df <- mutate_all(df, function(x) as.numeric(as.character(x)))
+        
         df$definitiva = rowMeans(df[2:4])
+        #ganaron <- df |> filter(definitiva >= 3)
+        #ganaron
         df
     })
+    
+    output$contents <- renderTable(
+        df <- exportar()
+    )
+    
     
     output$downloadData <- downloadHandler(
         filename = "prueba.xlsx",
         content = function(file) {
             write_xlsx(exportar(), file)
         }
+    )
+    
+    output$fig <- renderPlot(
+       ggplot(data = exportar(), aes(ID, definitiva))+
+           geom_point()
     )
     
 }
