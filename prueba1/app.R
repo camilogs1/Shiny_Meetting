@@ -2,6 +2,7 @@ library(shiny)
 library(stringr)
 library(openxlsx)
 library(writexl)
+library(tidyverse)
 
 ui <- fluidPage(
     titlePanel("Subida documentos"),
@@ -35,10 +36,11 @@ server <- function(input, output) {
         {
             df <- read.xlsx(input$file1$datapath)
         }else{
-            df <- read.csv(input$file1$datapath, header = TRUE)
+            df <- read.csv(input$file1$datapath, header = TRUE, sep = ";")
         }
-        df <- df |> 
-            mutate(definitiva = mean('Nota1', 'Nota2', 'Nota3'))
+        df <- mutate_all(df, function(x) as.numeric(as.character(x)))
+        df$definitiva = rowMeans(df[2:4])
+        df
     })
     
     output$downloadData <- downloadHandler(
